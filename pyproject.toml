@@ -41,8 +41,8 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/maximilian/audio-probe"
-Issues = "https://github.com/maximilian/audio-probe/issues"
+Homepage = "https://github.com/TurdOnTheRun/audio-probe"
+Issues = "https://github.com/TurdOnTheRun/audio-probe/issues"
 
 [project.scripts]
 audio-probe = "audio_probe.cli:main"
