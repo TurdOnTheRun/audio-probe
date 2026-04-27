@@ -1,0 +1,55 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "audio-probe"
+version = "0.1.0"
+description = "Objective audio analysis CLI with stable JSON output."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+  { name = "Maximilian" }
+]
+keywords = ["audio", "analysis", "cli", "testing", "wav", "metrics"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Multimedia :: Sound/Audio :: Analysis",
+  "Topic :: Software Development :: Testing",
+]
+dependencies = [
+  "numpy>=1.26",
+  "scipy>=1.11",
+  "soundfile>=0.12",
+]
+
+[project.optional-dependencies]
+plot = ["matplotlib>=3.8"]
+dev = [
+  "matplotlib>=3.8",
+  "pytest>=8.0",
+  "ruff>=0.8",
+]
+
+[project.urls]
+Homepage = "https://github.com/maximilian/audio-probe"
+Issues = "https://github.com/maximilian/audio-probe/issues"
+
+[project.scripts]
+audio-probe = "audio_probe.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
