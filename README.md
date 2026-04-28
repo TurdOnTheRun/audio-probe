@@ -37,6 +37,10 @@ audio-probe compare before.wav after.wav --window 1.0:3.0 --json
 audio-probe transients fixtures/click-loop.wav --window 0.0:1.0 --json
 audio-probe plot fixtures/sine-1000hz.wav --out debug.png
 audio-probe check checks.json --json
+audio-probe examples --json
+audio-probe list-metrics --json
+audio-probe schema --json
+audio-probe version --json
 ```
 
 ## Commands
@@ -148,6 +152,19 @@ For delta checks, provide `beforeFile` and `afterFile`:
 ```
 
 The command exits with code `0` when all checks pass and `1` when any check fails.
+
+### Agent Discovery
+
+```sh
+audio-probe examples --json
+audio-probe list-metrics --json
+audio-probe schema --json
+audio-probe version --json
+```
+
+These commands are intended for agents and scripts that need to discover valid workflows, metric paths, JSON output shapes, and version information without scraping README text.
+
+`audio-probe --help` also includes common workflows, window syntax, band syntax, discovery commands, and exit codes.
 
 ## Fixtures
 

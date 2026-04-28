@@ -17,6 +17,12 @@ def run_probe(*args: str) -> tuple[int, dict]:
     return completed.returncode, payload
 
 
+def run_text(*args: str) -> tuple[int, str, str]:
+    command = [sys.executable, "-m", "audio_probe", *args]
+    completed = subprocess.run(command, check=False, capture_output=True, text=True)
+    return completed.returncode, completed.stdout, completed.stderr
+
+
 def write_wav(path: Path, samples: np.ndarray, sample_rate: int = 48_000) -> None:
     sf.write(path, samples, sample_rate, subtype="PCM_24")
 
@@ -118,3 +124,40 @@ def test_check_returns_nonzero_for_failure(tmp_path: Path) -> None:
 
     assert code == 1
     assert payload["passed"] is False
+
+
+def test_root_help_includes_agent_workflows() -> None:
+    code, stdout, stderr = run_text("--help")
+
+    assert code == 0
+    assert stderr == ""
+    assert "Common workflows:" in stdout
+    assert "audio-probe list-metrics --json" in stdout
+    assert "Windows are start:end seconds" in stdout
+    assert "Exit codes:" in stdout
+
+
+def test_list_metrics_exposes_check_metric_paths() -> None:
+    code, payload = run_probe("list-metrics", "--json")
+
+    assert code == 0
+    names = {metric["name"] for metric in payload["metrics"]}
+    assert "rmsDb" in names
+    assert "bands.<low>:<high>.rmsDb" in names
+    assert "clickScore" in names
+
+
+def test_schema_describes_stable_outputs() -> None:
+    code, payload = run_probe("schema", "--json")
+
+    assert code == 0
+    assert payload["commands"]["metrics"]["output"]["rmsDb"] == "number"
+    assert payload["commands"]["check"]["input"]["metric"] == "metric path from list-metrics"
+
+
+def test_version_is_machine_readable() -> None:
+    code, payload = run_probe("version", "--json")
+
+    assert code == 0
+    assert payload["name"] == "audio-probe"
+    assert payload["version"]
