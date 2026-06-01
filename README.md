@@ -6,7 +6,7 @@ Objective audio analysis for agents, tests, and CI.
 
 ## Highlights
 
-- File metadata, level metrics, band energy, envelopes, stereo balance, comparisons, transient checks, plots, and generic checks.
+- File metadata, level metrics, band energy, envelopes, stereo balance, comparisons, null diffs, loudness, phase, shape checks, transient checks, plots, and generic checks.
 - Deterministic JSON output designed for automation.
 - Works on WAV, FLAC, AIFF, OGG, and other formats supported by libsndfile.
 - Synthetic fixture generator for repeatable tests.
@@ -34,6 +34,10 @@ audio-probe bands fixtures/sine-1000hz.wav --bands 20:200,200:2000,2000:16000 --
 audio-probe envelope fixtures/pulse.wav --window-ms 50 --hop-ms 10 --json
 audio-probe stereo stereo.wav --window 1.0:3.0 --json
 audio-probe compare before.wav after.wav --window 1.0:3.0 --json
+audio-probe diff before.wav after.wav --window 1.0:3.0 --json
+audio-probe loudness fixtures/sine-1000hz.wav --json
+audio-probe phase stereo.wav --window 1.0:3.0 --json
+audio-probe shape before.wav after.wav --json
 audio-probe transients fixtures/click-loop.wav --window 0.0:1.0 --json
 audio-probe plot fixtures/sine-1000hz.wav --out debug.png
 audio-probe check checks.json --json
@@ -93,13 +97,45 @@ audio-probe compare before.wav after.wav --window 1.0:3.0 --json
 
 Returns after-minus-before deltas for RMS, peak, and configured bands.
 
+### `diff`
+
+```sh
+audio-probe diff before.wav after.wav --window 1.0:3.0 --json
+```
+
+Aligns two files by cross-correlation, subtracts before from after, and returns residual RMS/peak levels, offset, compared frame count, and duration delta. Pass `--no-align` to subtract without alignment.
+
+### `loudness`
+
+```sh
+audio-probe loudness file.wav --window 1.0:3.0 --json
+```
+
+Returns LUFS-style integrated loudness, momentary and short-term maxima, approximate loudness range, and oversampled true peak.
+
+### `phase`
+
+```sh
+audio-probe phase stereo.wav --window 1.0:3.0 --json
+```
+
+Returns phase correlation, stereo width, mono RMS level, mono level delta, and `monoCompatible`.
+
+### `shape`
+
+```sh
+audio-probe shape before.wav after.wav --json
+```
+
+Returns duration, sample rate, channel count, frame count, leading/trailing silence, and active duration. With a second file, also returns duration/frame deltas and sample-rate/channel match booleans.
+
 ### `transients`
 
 ```sh
 audio-probe transients file.wav --window 3.95:4.05 --json
 ```
 
-Returns `maxSampleJump`, `maxSampleJumpDb`, `highFrequencyBurstDb`, and `clickScore`.
+Returns `maxSampleJump`, `maxSampleJumpDb`, `highFrequencyBurstDb`, `clickScore`, `transientCount`, and `transientTimes`.
 
 ### `plot`
 
@@ -188,7 +224,7 @@ Fixtures:
 
 ## Metric Paths
 
-Checks can reference top-level metric fields such as `rmsDb`, `peakDb`, `spectralCentroidHz`, `maxSampleJump`, `leftRmsDb`, `rightRmsDb`, and `balance`.
+Checks can reference top-level metric fields such as `rmsDb`, `peakDb`, `spectralCentroidHz`, `silenceDurationSeconds`, `onsetCount`, `maxSampleJump`, `transientCount`, `leftRmsDb`, `rightRmsDb`, `balance`, `lufsIntegrated`, `truePeakDb`, `phaseCorrelation`, `stereoWidth`, `durationSeconds`, `leadingSilenceSeconds`, and `trailingSilenceSeconds`.
 
 Band checks use:
 
@@ -200,6 +236,18 @@ Example:
 
 ```text
 bands.2000:16000.rmsDb
+```
+
+Compare band checks use:
+
+```text
+compare.bandDeltas.<low>:<high>.rmsDeltaDb
+```
+
+Null-diff checks use:
+
+```text
+diff.residualRmsDb
 ```
 
 ## License

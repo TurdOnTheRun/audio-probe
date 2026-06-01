@@ -60,6 +60,8 @@ def measure_metrics(path: str | Path, window: TimeWindow | None = None) -> dict[
     peak_db = dbfs(peak_value)
     envelope = envelope_values(mono, audio.sample_rate, window_ms=50.0, hop_ms=50.0)
 
+    silences = silence_ranges(envelope, actual_window.start)
+    onsets = onset_times(envelope, actual_window.start)
     return {
         "file": str(path),
         "window": _window_json(actual_window),
@@ -69,8 +71,12 @@ def measure_metrics(path: str | Path, window: TimeWindow | None = None) -> dict[
         "clippingSamples": int(np.count_nonzero(np.abs(samples) >= 0.999969482421875)),
         "dcOffset": round_float(float(np.mean(samples)) if samples.size else 0.0),
         "spectralCentroidHz": spectral_centroid_hz(mono, audio.sample_rate),
-        "silenceRanges": silence_ranges(envelope, actual_window.start),
-        "onsetTimes": onset_times(envelope, actual_window.start),
+        "silenceRanges": silences,
+        "silenceDurationSeconds": round_float(
+            sum(item["end"] - item["start"] for item in silences)
+        ),
+        "onsetTimes": onsets,
+        "onsetCount": len(onsets),
         "decaySlopeDbPerSecond": decay_slope_db_per_second(envelope),
     }
 
@@ -228,6 +234,7 @@ def measure_transients(path: str | Path, window: TimeWindow | None = None) -> di
     high_db = band_rms_db(mono, audio.sample_rate, high_start, audio.sample_rate / 2.0)
     peak_value = peak(mono)
     click_score = min(1.0, max_jump / peak_value) if peak_value > EPSILON else 0.0
+    transient_times = transient_times_from_jumps(jumps, audio.sample_rate, actual_window.start, peak_value)
     return {
         "file": str(path),
         "window": _window_json(actual_window),
@@ -235,7 +242,36 @@ def measure_transients(path: str | Path, window: TimeWindow | None = None) -> di
         "maxSampleJumpDb": dbfs(max_jump),
         "highFrequencyBurstDb": high_db,
         "clickScore": round_float(click_score),
+        "transientCount": len(transient_times),
+        "transientTimes": transient_times,
     }
+
+
+def transient_times_from_jumps(
+    jumps: np.ndarray,
+    sample_rate: int,
+    offset_seconds: float,
+    peak_value: float,
+    *,
+    min_jump: float = 0.15,
+    relative_jump: float = 0.55,
+) -> list[float]:
+    if jumps.size == 0 or sample_rate <= 0:
+        return []
+    threshold = max(min_jump, peak_value * relative_jump)
+    candidates = np.flatnonzero(jumps >= threshold)
+    if candidates.size == 0:
+        return []
+
+    refractory = max(1, int(round(sample_rate * 0.01)))
+    times: list[float] = []
+    last_index = -refractory
+    for index in candidates:
+        if int(index) - last_index < refractory:
+            continue
+        times.append(round_float(offset_seconds + (int(index) + 1) / sample_rate))
+        last_index = int(index)
+    return times
 
 
 def spectral_centroid_hz(samples: np.ndarray, sample_rate: int) -> float:
